@@ -8,8 +8,8 @@ st.set_page_config(page_title="Bond AI Screener", layout="wide")
 def load_data():
     df = pd.read_excel("data.xlsx")
     # Convert numeric columns and handle empty values
-   df["SPREAD (bps)"] = (df["YTM (%)"] - df["G-SEC YIELD (%)"]) * 100
-   df["DELTA (bps)"] = (df["YTM (%)"] - df["LAST CUT-OFF (%)"]) * 100
+    df["SPREAD (bps)"] = (df["YTM (%)"] - df["G-SEC YIELD (%)"]) * 100
+    df["DELTA (bps)"] = (df["YTM (%)"] - df["LAST CUT-OFF (%)"]) * 100
     return df
 
 df = load_data()
