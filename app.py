@@ -6,7 +6,7 @@ st.set_page_config(page_title="Bond AI Screener", layout="wide")
 # Load data from the CSV file
 @st.cache_data
 def load_data():
-    df = pd.read_csv("bond_data.csv")
+    df = pd.read_excel("data.xlsx")
     # Convert numeric columns and handle empty values
     df["SPREAD (bps)"] = pd.to_numeric(df["SPREAD (bps)"], errors='coerce').fillna(0)
     df["SCORE"] = pd.to_numeric(df["SCORE"], errors='coerce').fillna(0)
