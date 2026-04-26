@@ -3,59 +3,111 @@ import pandas as pd
 
 st.set_page_config(page_title="Bond AI Screener", layout="wide")
 
+# -----------------------------
+# Load Data
+# -----------------------------
 @st.cache_data
 def load_data():
     return pd.read_excel("data.xlsx")
 
 df = load_data()
 
-df["Spread"] = (df["Yield"] - df["GSec Yield"]) * 100
-df["Delta"] = (df["Yield"] - df["Last Cut-off"]) * 100
+# -----------------------------
+# Sorting
+# -----------------------------
+sort_by = st.sidebar.selectbox(
+    "Sort By",
+    ["SCORE", "SPREAD (bps)", "YTM (%)"]
+)
 
-def calculate_score(row):
-    score = 0
-    if row["Spread"] > 80:
-        score += 3
-    elif row["Spread"] > 60:
-        score += 2
+df = df.sort_values(by=sort_by, ascending=False)
+
+# -----------------------------
+# Valuation Tag
+# -----------------------------
+def valuation(row):
+    if row["SPREAD (bps)"] > 80:
+        return "CHEAP 🟢"
+    elif row["SPREAD (bps)"] > 60:
+        return "FAIR 🟡"
     else:
-        score += 1
+        return "EXPENSIVE 🔴"
 
-    if row["Delta"] > 5:
-        score += 3
-    elif row["Delta"] > 0:
-        score += 2
-    else:
-        score += 1
+df["VALUATION"] = df.apply(valuation, axis=1)
 
-    if row["Volume"] > 200:
-        score += 2
-    else:
-        score += 1
+# -----------------------------
+# UI
+# -----------------------------
+st.title("📊 Bond AI Screener (Dealer View)")
 
-    return score
+# Top trades
+st.subheader("🔥 Top 5 Opportunities")
+st.dataframe(
+    df[[
+        "SECURITY NAME",
+        "PRICE",
+        "YTM (%)",
+        "SPREAD (bps)",
+        "DELTA (bps)",
+        "SCORE",
+        "VALUATION"
+    ]].head(5),
+    use_container_width=True
+)
 
-df["Score"] = df.apply(calculate_score, axis=1)
-df = df.sort_values(by="Score", ascending=False)
+# Full table
+st.subheader("📊 Full Market View")
+st.dataframe(
+    df[[
+        "SECURITY NAME",
+        "PRICE",
+        "YTM (%)",
+        "SPREAD (bps)",
+        "DELTA (bps)",
+        "VOLUME",
+        "SCORE",
+        "VALUATION"
+    ]],
+    use_container_width=True
+)
 
-st.title("📊 Bond AI Screener")
-
-st.subheader("Top Opportunities")
-st.dataframe(df.head(5), use_container_width=True)
-
-st.subheader("Full Market View")
-st.dataframe(df, use_container_width=True)
-
+# -----------------------------
+# Filter
+# -----------------------------
 st.sidebar.header("Filter")
-states = st.sidebar.multiselect("Select State", df["State"].unique())
 
-if states:
-    filtered = df[df["State"].isin(states)]
+security_filter = st.sidebar.multiselect(
+    "Select Security",
+    df["SECURITY NAME"].unique()
+)
+
+if security_filter:
+    filtered = df[df["SECURITY NAME"].isin(security_filter)]
     st.subheader("Filtered Data")
     st.dataframe(filtered, use_container_width=True)
 
+# -----------------------------
+# Chart
+# -----------------------------
+st.subheader("📈 Spread Comparison")
+st.bar_chart(df.set_index("SECURITY NAME")["SPREAD (bps)"])
+
+# -----------------------------
+# Best Trade Insight
+# -----------------------------
 best = df.iloc[0]
-st.subheader("Best Opportunity")
-st.write(f"{best['ISIN']} ({best['State']})")
-st.write(f"Spread: {best['Spread']:.2f} bps")
-st.write(f"Score: {best['Score']}")
+
+st.subheader("🧠 Dealer Insight")
+
+st.success(f"""
+Best Trade: {best['SECURITY NAME']}
+
+Price: {best['PRICE']}
+YTM: {best['YTM (%)']}%
+Spread: {best['SPREAD (bps)']} bps
+
+Why:
+- High spread vs G-Sec
+- Positive auction delta
+- Good relative value
+""")
